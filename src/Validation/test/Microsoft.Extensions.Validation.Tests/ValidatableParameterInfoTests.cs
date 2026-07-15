@@ -308,6 +308,43 @@ public class ValidatableParameterInfoTests : ValidationTestBase
         Assert.True(context.ValidationErrors is null || context.ValidationErrors.Count == 0);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ValidationErrors_ReturnsImmutableCollections(bool useAsync)
+    {
+        // Arrange
+        var paramInfo = CreateTestParameterInfo(
+            parameterType: typeof(string),
+            name: "testParam",
+            displayName: "Test Parameter",
+            validationAttributes: [new RequiredAttribute()]);
+
+        var context = CreateValidatableContext();
+
+        // Act
+        await ValidateAsync(paramInfo, null, context, useAsync, default);
+
+        // Assert
+        var errors = context.ValidationErrors;
+        Assert.NotNull(errors);
+
+        // The outer dictionary must not be castable to a mutable Dictionary
+        Assert.IsNotType<Dictionary<string, IReadOnlyList<string>>>(errors);
+
+        // The value lists must not be castable to a mutable List<string>
+        var value = Assert.Single(errors).Value;
+        Assert.IsNotType<List<string>>(value);
+
+        // Attempting to mutate the outer dictionary must throw
+        Assert.Throws<NotSupportedException>(() =>
+            ((System.Collections.Generic.IDictionary<string, IReadOnlyList<string>>)errors)["newKey"] = []);
+
+        // Attempting to mutate a value list must throw
+        Assert.Throws<NotSupportedException>(() =>
+            ((System.Collections.Generic.IList<string>)value).Add("extra error"));
+    }
+
     private TestValidatableParameterInfo CreateTestParameterInfo(
         Type parameterType,
         string name,

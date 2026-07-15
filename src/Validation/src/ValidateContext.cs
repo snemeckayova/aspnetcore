@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -13,7 +14,9 @@ namespace Microsoft.Extensions.Validation;
 [Experimental("ASP0029", UrlFormat = "https://aka.ms/aspnet/analyzer/{0}")]
 public sealed class ValidateContext
 {
-    private Dictionary<string, IReadOnlyList<string>>? _validationErrors;
+    private Dictionary<string, List<string>>? _mutableValidationErrors;
+    private Dictionary<string, IReadOnlyList<string>>? _readOnlyValidationErrors;
+    private ReadOnlyDictionary<string, IReadOnlyList<string>>? _validationErrorsView;
 
     /// <summary>
     /// Initializes a new instance of <see cref="ValidateContext"/>.
@@ -81,7 +84,7 @@ public sealed class ValidateContext
     /// There are no guarantees whether or not this dictionary is lazy. Usages should treat null and empty dictionary the same.
     /// </remarks>
     public IReadOnlyDictionary<string, IReadOnlyList<string>>? ValidationErrors
-        => _validationErrors;
+        => _validationErrorsView;
 
     /// <summary>
     /// Gets or sets the current depth in the validation hierarchy.
@@ -161,15 +164,22 @@ public sealed class ValidateContext
 
     private void AddValidationErrorSuppressEvent(string path, IReadOnlyList<string> errors)
     {
-        _validationErrors ??= new Dictionary<string, IReadOnlyList<string>>();
-
-        if (!_validationErrors.TryGetValue(path, out var existingErrors))
+        if (_mutableValidationErrors is null)
         {
-            _validationErrors.Add(path, errors.ToList());
+            _mutableValidationErrors = [];
+            _readOnlyValidationErrors = [];
+            _validationErrorsView = new ReadOnlyDictionary<string, IReadOnlyList<string>>(_readOnlyValidationErrors);
+        }
+
+        if (!_mutableValidationErrors.TryGetValue(path, out var existingList))
+        {
+            var newList = errors.ToList();
+            _mutableValidationErrors.Add(path, newList);
+            _readOnlyValidationErrors!.Add(path, newList.AsReadOnly());
         }
         else
         {
-            ((List<string>)existingErrors).AddRange(errors);
+            existingList.AddRange(errors);
         }
     }
 

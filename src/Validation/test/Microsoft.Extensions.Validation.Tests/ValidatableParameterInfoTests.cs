@@ -330,11 +330,11 @@ public class ValidatableParameterInfoTests : ValidationTestBase
         Assert.NotNull(errors);
 
         // The outer dictionary must not be castable to a mutable Dictionary
-        Assert.IsNotType<Dictionary<string, IReadOnlyList<string>>>(errors);
+        Assert.IsNotType<Dictionary<string, IReadOnlyList<string>>>(errors, exactMatch: false);
 
         // The value lists must not be castable to a mutable List<string>
         var value = Assert.Single(errors).Value;
-        Assert.IsNotType<List<string>>(value);
+        Assert.IsNotType<List<string>>(value, exactMatch: false);
 
         // Attempting to mutate the outer dictionary must throw
         Assert.Throws<NotSupportedException>(() =>

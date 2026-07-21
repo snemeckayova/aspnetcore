@@ -338,11 +338,11 @@ public class ValidatableParameterInfoTests : ValidationTestBase
 
         // Attempting to mutate the outer dictionary must throw
         Assert.Throws<NotSupportedException>(() =>
-            ((System.Collections.Generic.IDictionary<string, IReadOnlyList<string>>)errors)["newKey"] = []);
+            ((IDictionary<string, IReadOnlyList<string>>)errors)["newKey"] = []);
 
         // Attempting to mutate a value list must throw
         Assert.Throws<NotSupportedException>(() =>
-            ((System.Collections.Generic.IList<string>)value).Add("extra error"));
+            ((IList<string>)value).Add("extra error"));
     }
 
     private TestValidatableParameterInfo CreateTestParameterInfo(
